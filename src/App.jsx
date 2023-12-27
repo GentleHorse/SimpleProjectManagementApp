@@ -1,68 +1,131 @@
 import { useState } from "react";
 
-import ProjectForm from "./components/ProjectForm";
-import SideBar from "./components/SideBar";
-import ProjectDetail from "./components/ProjectDetail";
+import SideBar from "./components/SideBar.jsx";
+import NewProject from "./components/NewProject.jsx";
+import NoProjectSelected from "./components/NoProjectSelected.jsx";
+import SelectedProject from "./components/SelectedProject.jsx";
 
 function App() {
-  const [isProjectFormOpen, setIsProjectFormOpen] = useState(false);
-  const [projects, setProjects] = useState([]);
-  const [selectedProject, setSelectedProject] = useState("");
+  const [projectState, setProjectState] = useState({
+    selectedProjectId: undefined,
+    projects: [],
+    tasks: [],
+  });
 
-  const projectFormHandler = (identifier) => {
-    if (identifier === "open") {
-      setIsProjectFormOpen(true);
-    } else {
-      setIsProjectFormOpen(false);
-    }
-  };
+  const addTaskHandler = (text) => {
+    setProjectState((prevState) => {
+      const taskId = Math.random();
+      const newTask = {
+        text: text,
+        projectId: prevState.selectedProjectId,
+        id: taskId,
+      };
 
-  const projectInputHandler = (inputData) => {
-    setProjects((prevProjects) => {
-      const updateProjects = [...prevProjects, inputData];
-
-      return updateProjects;
+      return {
+        ...prevState,
+        tasks: [...prevState.tasks, newTask],
+      };
     });
-
-    setIsProjectFormOpen(false);
   };
 
-  const projectDeleteHandler = () => {
-    setProjects((prevProjects) => {
-      const copyProjects = [...prevProjects];
-      const deletedProject = copyProjects.filter(
-        (project) => project.title !== selectedProject
-      );
-
-      return deletedProject;
+  const deleteTaskHandler = (id) => {
+    setProjectState((prevState) => {
+      return {
+        ...prevState,
+        tasks: prevState.tasks.filter((task) => task.id !== id),
+      };
     });
-
-    setSelectedProject("");
   };
+
+  const selectProjectHandler = (id) => {
+    setProjectState((prevState) => {
+      return {
+        ...prevState,
+        selectedProjectId: id,
+      };
+    });
+  };
+
+  const startAddProjectHandler = () => {
+    setProjectState((prevState) => {
+      return {
+        ...prevState,
+        selectedProjectId: null,
+      };
+    });
+  };
+
+  const addProjectHandler = (projectData) => {
+    setProjectState((prevState) => {
+      const projectId = Math.random();
+      const newProject = {
+        ...projectData,
+        id: projectId,
+      };
+
+      return {
+        ...prevState,
+        selectedProjectId: undefined,
+        projects: [...prevState.projects, newProject],
+      };
+    });
+  };
+
+  const cancelAddProjectHandler = () => {
+    setProjectState((prevState) => {
+      return {
+        ...prevState,
+        selectedProjectId: undefined,
+      };
+    });
+  };
+
+  const deleteProjectHandler = () => {
+    setProjectState((prevState) => {
+      return {
+        ...prevState,
+        selectedProjectId: undefined,
+        projects: prevState.projects.filter(
+          (project) => project.id !== prevState.selectedProjectId
+        ),
+      };
+    });
+  };
+
+  const selectedProject = projectState.projects.find(
+    (project) => project.id === projectState.selectedProjectId
+  );
+
+  let content = (
+    <SelectedProject
+      project={selectedProject}
+      tasks={projectState.tasks}
+      onDelete={deleteProjectHandler}
+      onAddTask={addTaskHandler}
+      onDeleteTask={deleteTaskHandler}
+    />
+  );
+
+  if (projectState.selectedProjectId === null) {
+    content = (
+      <NewProject
+        onAdd={addProjectHandler}
+        onCancel={cancelAddProjectHandler}
+      />
+    );
+  } else if (projectState.selectedProjectId === undefined) {
+    content = <NoProjectSelected onStartAddProject={startAddProjectHandler} />;
+  }
 
   return (
     <main className="h-screen my-8 flex gap-8">
       <SideBar
-        projects={projects}
-        selected={selectedProject}
-        onOpen={projectFormHandler}
-        onSelect={setSelectedProject}
+        projects={projectState.projects}
+        selectedProjectId={projectState.selectedProjectId}
+        onStartAddProject={startAddProjectHandler}
+        onSelectProject={selectProjectHandler}
       />
-      {isProjectFormOpen && (
-        <ProjectForm
-          onClose={projectFormHandler}
-          onSave={projectInputHandler}
-          onSelect={setSelectedProject}
-        />
-      )}
-      {!isProjectFormOpen && (
-        <ProjectDetail
-          projects={projects}
-          selected={selectedProject}
-          onOpen={projectFormHandler}
-          onDelete={projectDeleteHandler}
-        />
-      )}
+      {content}
     </main>
   );
 }
